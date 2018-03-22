@@ -89,7 +89,7 @@ public class JsonSerializer {
       addNum(value, b);
     }
     else if (value instanceof Boolean) {
-      boolean v = (boolean) value;
+      boolean v = (Boolean) value;
       b.append(v ? "true" : "false");
     }
     else if (value instanceof Date) {
