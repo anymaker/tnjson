@@ -5,7 +5,9 @@ Map to JSON converter and JSON to Map parser with support JSON5
 # Introduction
 
 By simple:
+
 What is a json-object? This is a string representation of javascript object.
+
 What is a javascript-object? This is a associative array where the string as key and any object as value.
 
 The most similar structure in the java is a Map<String, Object>.
