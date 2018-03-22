@@ -18,7 +18,7 @@ This is natural json representation, and this is very useful for debug, research
 
 Suppose we have the json5-string:
 
-```json
+```
 {
   // comments
   unquoted: 'and you can quote me on that',
