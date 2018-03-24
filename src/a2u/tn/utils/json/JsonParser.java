@@ -276,11 +276,10 @@ public class JsonParser {
     StringBuilder b = new StringBuilder();
     while (index < maxLength) {
       char c = content.charAt(index);
-      if (Character.isLetterOrDigit(c) || c == '.' || c == '+' || c == '-') {
-        b.append(c);
+      if (c == '+' && b.length() == 0) {
         index++;
       }
-      else if ((c == '+' || c == '-') && b.length() == 0 ) {
+      else if (Character.isLetterOrDigit(c) || c == '.' || c == '+' || c == '-') {
         b.append(c);
         index++;
       }
