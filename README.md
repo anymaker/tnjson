@@ -13,6 +13,10 @@ What is a javascript-object? This is a associative array where the string as key
 The most similar structure in the java is a Map<String, Object>.
 This is natural json representation, and this is very useful for debug, research, and in support of production system.
 
+# Requirement
+ - Java 1.6
+ - Not have any other dependency
+
 
 # How to use
 
@@ -58,6 +62,44 @@ And we get this result :
       andIn -> ArrayList:[ Stirng: "arrays" ] size = 1
       backwardsCompatible -> Stirng: "with JSON"
     }
+
+
+By default in this parsing for collections using LinkedHashMap and ArrayList. This is very useful for debug.
+
+If you unlike LinkedHashMap or ArrayList, you can use method
+
+```
+public static Map<String, Object> parse(String data, IGetCollection listener)
+```
+
+For example:
+
+```java
+    String json;
+    Map<String, Object> result;
+    json = "{obj1:{num1:123, obj2:{list:[456, 789]}}}";
+
+    result = JsonParser.parse(json,
+                             new JsonParser.IGetCollection() {
+                               @Override
+                               public Map<String, Object> forObject(String path) {
+                                 if (path.equals("root.obj1.obj2")) {
+                                   return new HashMap<String, Object>();
+                                 }
+                                 return null;
+                               }
+
+                               @Override
+                               public Collection forList(String path) {
+                                 if (path.equals("root.obj1.obj2.list")) {
+                                   return new HashSet();
+                                 }
+                                 return null;
+                               }
+                             });
+
+```
+
 
 
 ## Convert to json
