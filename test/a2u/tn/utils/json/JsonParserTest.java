@@ -1,20 +1,19 @@
 package a2u.tn.utils.json;
 
-import a2u.tn.utils.json.JsonParser;
-import a2u.tn.utils.json.MapNavigator;
-import a2u.tn.utils.json.ParseException;
-
 import java.math.BigInteger;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 
 public class JsonParserTest {
 
   @org.junit.Test
-  public void testParse() throws Exception {
+  public void testParseFirstMethod() throws Exception {
 
     testParseStandart();
     testParseStandartString();
@@ -334,6 +333,11 @@ public class JsonParserTest {
     result = JsonParser.parse(json);
     assertEquals(1, MapNavigator.fromPath(result, "list.0"));
 
+    json = "[1,2]";
+    result = JsonParser.parse(json);
+    assertEquals(1, MapNavigator.fromPath(result, "list.0"));
+    assertEquals(2, MapNavigator.fromPath(result, "list.1"));
+
 
     json = "// An array with three elements\n" +
            "// and a trailing comma\n" +
@@ -349,6 +353,7 @@ public class JsonParserTest {
     json = "{\"str\": '\\A\\C\\/\\D\\C'}";
     result = JsonParser.parse(json);
     assertEquals("AC/DC", result.get("str"));
+
   }
 
   private void testIncorrectness() throws Exception {
@@ -377,9 +382,62 @@ public class JsonParserTest {
       throw new Exception("No exception.\nResult: " + result);
     }
     catch (ParseException ex) {
-      System.out.println(ex.getMessage());
+      System.out.println("Expected Exception: " + ex.getMessage() + " - Ok.");
     }
 
   }
 
+
+
+  @org.junit.Test
+  public void testParseSecondMethod() throws Exception {
+    String json;
+    Map<String, Object> result;
+
+    json = "{obj1:{num1:123, obj2:{list:[456, 789]}}}";
+    result = JsonParser.parse(json, null);
+    assertEquals("java.util.LinkedHashMap", MapNavigator.fromPath(result, "obj1.obj2").getClass().getName());
+    assertEquals("java.util.ArrayList", MapNavigator.fromPath(result, "obj1.obj2.list").getClass().getName());
+
+    result = JsonParser.parse(json,
+                             new JsonParser.IGetCollection() {
+                               @Override
+                               public Map<String, Object> forObject(String path) {
+                                 return null;
+                               }
+
+                               @Override
+                               public Collection<Object> forList(String path) {
+                                 return null;
+                               }
+                             });
+    assertEquals("java.util.LinkedHashMap", MapNavigator.fromPath(result, "obj1.obj2").getClass().getName());
+    assertEquals("java.util.ArrayList", MapNavigator.fromPath(result, "obj1.obj2.list").getClass().getName());
+
+    result = JsonParser.parse(json,
+                             new JsonParser.IGetCollection() {
+                               @Override
+                               public Map<String, Object> forObject(String path) {
+                                 if (path.equals("root.obj1.obj2")) {
+                                   return new HashMap<String, Object>();
+                                 }
+                                 return null;
+                               }
+
+                               @Override
+                               public Collection forList(String path) {
+                                 if (path.equals("root.obj1.obj2.list")) {
+                                   return new HashSet();
+                                 }
+                                 return null;
+                               }
+                             });
+    assertEquals("java.util.HashMap", MapNavigator.fromPath(result, "obj1.obj2").getClass().getName());
+    assertEquals("java.util.HashSet", MapNavigator.fromPath(result, "obj1.obj2.list").getClass().getName());
+
+    HashSet<Integer> list = (HashSet) MapNavigator.fromPath(result, "obj1.obj2.list");
+    assertEquals("java.lang.Integer", list.toArray()[0].getClass().getName());
+
+
+  }
 }

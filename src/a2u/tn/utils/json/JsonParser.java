@@ -2,8 +2,8 @@ package a2u.tn.utils.json;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -14,7 +14,68 @@ import java.util.Map;
 @SuppressWarnings("Convert2Diamond")
 public class JsonParser {
 
+  /**
+   * This name will get element in a returned map when json-string will be an array of values.
+   */
   public static final String DEFAULT_LIST_KEY = "list";
+
+  /**
+   * Name of root element in a path. Using in call-back methods of IGetCollection.
+   * @see IGetCollection#forObject(String)
+   * @see IGetCollection#forList(String)
+   */
+  public static final String PATH_ROOT_KEY = "root";
+
+
+  /**
+   * The callback-interface for specifying type of collection which will be returned when parsing.
+   * @see #parse(String, IGetCollection)
+   */
+  public interface IGetCollection {
+    /**
+     * This methow will be called when parcer need create new map.<br>
+     * If this method returns null, then map will be created with the default type - LinkedHashMap.
+     *
+     * @param path path of current element, starting from root. If this a root element, then path == "root".
+     * @return the empty object who implementing interface from java.util.Map<String, Object>.
+     *
+     * @see #PATH_ROOT_KEY
+     */
+    Map<String, Object> forObject(String path);
+
+    /**
+     * This methow will be called when parcer need create new array.<br>
+     * If this method returns null, then array will be created with the default type - ArrayList.
+     *
+     * @param path path of current element, starting from root.
+     * @return the empty object who implementing interface from java.util.Collection<Object>.
+     *
+     * @see #PATH_ROOT_KEY
+     */
+    Collection forList(String path);
+  }
+  private IGetCollection listener;
+
+
+  /**
+   * Inner immutable class for represent path by root of json-object
+   */
+  private class Path {
+    private String path;
+
+    public Path(String str) {
+      this.path = str;
+    }
+
+    public String getName() {
+      return path;
+    }
+
+    public Path add(String node) {
+      return new Path(path + '.' + node);
+    }
+
+  }
 
   private static final String NULL = "null";
   private static final String BOOL_TRUE = "true";
@@ -30,10 +91,10 @@ public class JsonParser {
   private static final char PS = 0x2029;
 
 
-  private Map<String, Object> resultMap;
-  private String content;
-  private int maxLength;
-  private int index;
+  private Map<String, Object> resultMap; // result object
+  private String content;                // incoming json-string
+  private int maxLength;                 // cache of length the incoming json-string
+  private int index;                     // current accepted symbol
 
 
   private JsonParser() {
@@ -43,46 +104,75 @@ public class JsonParser {
 
 
   /**
-   * Parsing JSON-string to Map
-   * Every value in the Map can be
-   *   either a simple value (string or number or boolean),
-   *   either by a Map - a nested object (Map<String, Object>),
-   *   either an array of values (List<Object>)
+   * Parsing JSON-string to Map.<br>
+   * Every value in the resulting Map will be:
+   * <ul>
+   *   <li>or a simple value (string or number or boolean),</li>
+   *   <li>or a LinkedHashMap with nested json-object,</li>
+   *   <li>or an ArrayList of values.</li>
+   * </ul>
    *
-   * If JSON contain array, then will return Map object with element by key-name DEFAULT_LIST_KEY, which contain list
+   * @param data incoming JSON-string.
+   * @return Map with data.<br>
+   * If JSON contain only array, such as [1,2] then will return Map
+   * with single element by key-name DEFAULT_LIST_KEY, which contain list.
+   * @see #DEFAULT_LIST_KEY
    *
-   * @param data JSON-string
-   * @return Map with data
    */
   public static Map<String, Object> parse(String data) {
     JsonParser p = new JsonParser();
     return p.doParse(data);
   }
 
+  /**
+   * Parsing JSON-string to Map with specifying returned collections.<br>
+   * For each element representing a non-simple value, will be called the corresponding method of listener,
+   * which allows you to set type of the returned object.
+   * @see IGetCollection
+   *
+   * @param data incoming JSON-string.
+   * @param listener callback listener.
+   * @return Map with data.<br>
+   * If JSON contain only array, such as [1,2] then will return Map
+   * with single element by key-name DEFAULT_LIST_KEY, which contain list.
+   * @see #DEFAULT_LIST_KEY
+   */
+  public static Map<String, Object> parse(String data, IGetCollection listener) {
+    JsonParser p = new JsonParser();
+    p.listener = listener;
+    return p.doParse(data);
+  }
+
+
+  /**
+   * Prepare and start parsing
+   * @param data json-string
+   * @return java-map object - result of parsing
+   */
   private Map<String, Object> doParse(String data) {
     content = data.trim();
     maxLength = content.length();
     index = 0;
-    resultMap = new LinkedHashMap<String, Object>();
 
-    parseEmpty();
+    Path emptypath = new Path(PATH_ROOT_KEY);
+    resultMap = getCollectionForObject(emptypath);
+
+    parseEmpty(emptypath);
 
     return resultMap;
   }
 
-
-
-  private void parseEmpty() {
+  private void parseEmpty(Path emptypath) {
     while (index < maxLength) {
       char c = getTokenBegin();
       if (c == '{') {
         index++;
-        resultMap = parseMap();
+        resultMap = parseMap(emptypath);
         return;
       }
       else if (c == '[') {
         index++;
-        List<Object> list = parseList();
+        Collection list = parseList(emptypath);
         resultMap.put(DEFAULT_LIST_KEY, list);
       }
 
@@ -90,26 +180,26 @@ public class JsonParser {
     }
   }
 
-  private Map<String, Object> parseMap() {
-    Map<String, Object> map = new LinkedHashMap<String, Object>();
+
+  private Map<String, Object> parseMap(Path path) {
+    Map<String, Object> map = getCollectionForObject(path);
 
     while (index < maxLength) {
-      char c = getTokenBegin(); //to begin
+      char c = getTokenBegin(); //skip to begin
 
       if (c == '}') {
         index++;
         return map;
       }
 
-      String key = getIdenty();
+      String key = extractIdenty();
 
       c = getTokenBegin();
       if (c != ':') {
-        throw new ParseException("Invalid character '" + charToLog(c) + "' at position " + index + ", expected ':'.");
+        throw new ParseException("Invalid character '" + charToLog(c) + "' at position " + index + " (" + path.getName() + "), expected ':'.", index);
       }
       index++;
-
-      Object val = getValue();
+      Object val = extractValue(path.add(key));
       map.put(key, val);
 
       c = getTokenBegin();
@@ -122,14 +212,14 @@ public class JsonParser {
         continue;
       }
 
-      throw new ParseException("Invalid character '" + charToLog(c) + "' at position " + index + ", expected ',' or '}'.");
+      throw new ParseException("Invalid character '" + charToLog(c) + "' at position " + index + " (" + path.getName() + "), expected ',' or '}'.", index);
     }
 
     return map;
   }
 
-  private List<Object> parseList() {
-    List<Object> list = new ArrayList<Object>();
+  private Collection parseList(Path path) {
+    Collection list = getCollectionForList(path);
 
     while (index < maxLength) {
       char c = getTokenBegin();
@@ -144,7 +234,7 @@ public class JsonParser {
         continue;
       }
 
-      Object val = getValue();
+      Object val = extractValue(path);
       list.add(val);
 
     }
@@ -153,7 +243,11 @@ public class JsonParser {
   }
 
 
-
+  /**
+   * Return a first symbol which has mean, starting at position = index.
+   * Comments will be ignored.
+   * index will point to this symbol.
+   */
   private char getTokenBegin() {
     while (index < maxLength) {
       char c = content.charAt(index);
@@ -205,13 +299,9 @@ public class JsonParser {
     }
   }
 
-  private boolean isLineTerminator(char c) {
-    return c == LF || c == CR || c == LS || c == PS;
-  }
 
 
-
-  private String getIdenty() {
+  private String extractIdenty() {
     char c = content.charAt(index);
     char terminator = (c == '"' || c == '\'') ? c : 0;
 
@@ -242,37 +332,32 @@ public class JsonParser {
     return b.toString().trim();
   }
 
-
-
-  private Object getValue() {
+  private Object extractValue(Path path) {
     char c = getTokenBegin();
 
     if (c == '{') {
       index++;
-      Map<String, Object> map = parseMap();
+      Map<String, ?> map = parseMap(path);
       return map;
     }
     if (c == '[') {
       index++;
-      List<Object> list = parseList();
+      Collection list = parseList(path);
       return list;
     }
     if (c == '"' || c == '\'') {
-      String str = getString();
+      String str = extractString();
       return str;
     }
     else {
-      Object num = getLiteral();
+      Object num = extractLiteral();
       return num;
     }
 
-
-    //throw new ParseException("Invalid character '" + c + "' at position " + index + ".");
   }
 
 
-
-  private Object getLiteral() {
+  private Object extractLiteral() {
     StringBuilder b = new StringBuilder();
     while (index < maxLength) {
       char c = content.charAt(index);
@@ -319,7 +404,7 @@ public class JsonParser {
       return detectNumber(literal);
     }
     catch (Exception ex) {
-      throw new ParseException("Invalid literal '" + literal + "' at position " + index + ".");
+      throw new ParseException("Invalid literal '" + literal + "' at position " + index + ".", index);
     }
 
   }
@@ -359,8 +444,7 @@ public class JsonParser {
   }
 
 
-
-  private String getString() {
+  private String extractString() {
     char terminator = content.charAt(index);
     index++;
 
@@ -385,9 +469,8 @@ public class JsonParser {
     return b.toString().trim();
   }
 
-
   /**
-   * Extract escaped sequences, and convert ot char
+   * Extract escaped sequences, and convert to char
    * https://spec.json5.org/#escapes
    *
    * As result index will refer to the last accepted character
@@ -438,6 +521,13 @@ public class JsonParser {
 
 
 
+  /**
+   * Line terminator point out to end of single-line comment
+   */
+  private boolean isLineTerminator(char c) {
+    return c == LF || c == CR || c == LS || c == PS;
+  }
+
   private boolean isHexadecimalChar(char c) {
     if (c >= '0' && c <= '9') {
       return true;
@@ -451,8 +541,9 @@ public class JsonParser {
     return false;
   }
 
-
-
+  /**
+   * Transform character to string for log
+   */
   private String charToLog(char c) {
     switch (c) {
       case '\b': return "\\b";
@@ -472,5 +563,26 @@ public class JsonParser {
 
   }
 
+  private Map<String, Object> getCollectionForObject(Path path) {
+    Map<String, Object> result = null;
+    if (listener != null) {
+      result = listener.forObject(path.getName());
+    }
+    if (result == null) {
+      result = new LinkedHashMap<String, Object>();
+    }
+    return result;
+  }
+
+  private Collection getCollectionForList(Path path) {
+    Collection result = null;
+    if (listener != null) {
+      result = listener.forList(path.getName());
+    }
+    if (result == null) {
+      result = new ArrayList();
+    }
+    return result;
+  }
 
 }

@@ -1,12 +1,24 @@
 package a2u.tn.utils.json;
 
+/**
+ * Exception on parse error
+ */
 public class ParseException extends RuntimeException {
 
-  public ParseException(Throwable e) {
-    super(e);
+  private int position;
+
+
+  public ParseException(String s, int position) {
+    super(s);
+    this.position = position;
   }
 
-  public ParseException(String s) {
-    super(s);
+  /**
+   * Position in jsp where occur error
+   * @return position of invalid symbol
+   */
+  public int getPosition() {
+    return position;
   }
+
 }
