@@ -374,6 +374,8 @@ public class JsonParserTest {
     json = "{1:'hhhhhh\"llll'}";
     //testException(json);
 
+    json = "{aaaa \"wwww\", ssss:\"dddd\"}";
+    testException(json);
 
   }
   private void testException(String json) throws Exception {

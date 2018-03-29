@@ -120,8 +120,14 @@ public class JsonParser {
    *
    */
   public static Map<String, Object> parse(String data) {
-    JsonParser p = new JsonParser();
-    return p.doParse(data);
+    try {
+      JsonParser p = new JsonParser();
+      return p.doParse(data);
+    }
+    catch (ParseException px) {
+      //Hide unnecessary log trace. If you want full trace - change it.
+      throw new ParseException(px.getMessage(), px.getPosition(), px.getPath());
+    }
   }
 
   /**
@@ -138,9 +144,15 @@ public class JsonParser {
    * @see #DEFAULT_LIST_KEY
    */
   public static Map<String, Object> parse(String data, IGetCollection listener) {
-    JsonParser p = new JsonParser();
-    p.listener = listener;
-    return p.doParse(data);
+    try {
+      JsonParser p = new JsonParser();
+      p.listener = listener;
+      return p.doParse(data);
+    }
+    catch (ParseException px) {
+      //Hide unnecessary log trace. If you want full trace - change it.
+      throw new ParseException(px.getMessage(), px.getPosition(), px.getPath());
+    }
   }
 
 
@@ -192,11 +204,14 @@ public class JsonParser {
         return map;
       }
 
-      String key = extractIdenty();
+      String key = extractIdenty(path);
+
+      String pathForLog = path.getName() + "." + key;
 
       c = getTokenBegin();
       if (c != ':') {
-        throw new ParseException("Invalid character '" + charToLog(c) + "' at position " + index + " (" + path.getName() + "), expected ':'.", index);
+        ;
+        throw new ParseException("Invalid character '" + charToLog(c) + "' at position " + index + ", path '" + pathForLog + "', expected ':'.", index, pathForLog);
       }
       index++;
       Object val = extractValue(path.add(key));
@@ -212,7 +227,7 @@ public class JsonParser {
         continue;
       }
 
-      throw new ParseException("Invalid character '" + charToLog(c) + "' at position " + index + " (" + path.getName() + "), expected ',' or '}'.", index);
+      throw new ParseException("Invalid character '" + charToLog(c) + "' at position " + index + ", last path '"+ pathForLog +"', expected ',' or '}'.", index, pathForLog);
     }
 
     return map;
@@ -301,7 +316,7 @@ public class JsonParser {
 
 
 
-  private String extractIdenty() {
+  private String extractIdenty(Path path) {
     char c = content.charAt(index);
     char terminator = (c == '"' || c == '\'') ? c : 0;
 
@@ -315,13 +330,15 @@ public class JsonParser {
         }
         return b.toString().trim();
       }
-      if (c == ':' || c == '/') {
+      if (terminator == 0 && (c == ':' || c == '/' || isWhiteSpace(c))) {
         return b.toString().trim();
       }
 
-      if (c == '\\') {
-        char ce = getCharFromEscapedText();
-        b.append(ce);
+      if (c  == '\\') {
+        c = getCharFromEscapedText();
+      }
+      if ((terminator == 0 && (c== '\'' || c == '"')) || isLineTerminator(c)) {
+        throw new ParseException("Invalid character '"+ charToLog(c) +"' for identifier '"+ b.toString() +"' at position "+ index +", path '"+ path.getName() +"'.", index, path.getName());
       }
       else {
         b.append(c);
@@ -350,14 +367,14 @@ public class JsonParser {
       return str;
     }
     else {
-      Object num = extractLiteral();
+      Object num = extractLiteral(path);
       return num;
     }
 
   }
 
 
-  private Object extractLiteral() {
+  private Object extractLiteral(Path path) {
     StringBuilder b = new StringBuilder();
     while (index < maxLength) {
       char c = content.charAt(index);
@@ -404,7 +421,7 @@ public class JsonParser {
       return detectNumber(literal);
     }
     catch (Exception ex) {
-      throw new ParseException("Invalid literal '" + literal + "' at position " + index + ".", index);
+      throw new ParseException("Invalid literal '" + literal + "' at position " + index + ", path '"+ path.getName() +"'.", index, path.getName());
     }
 
   }
@@ -487,6 +504,9 @@ public class JsonParser {
       case 'n': resultChar = '\n'; break;
       case 'r': resultChar = '\r'; break;
       case 't': resultChar = '\t'; break;
+      case 'v': resultChar = 0x000B; break;
+      case '0': resultChar = 0x0000; break;
+      case '\'': resultChar = '\'';  break;
       case '"': resultChar = '"';  break;
       case '\\': resultChar = '\\'; break;
       case 'u':
@@ -520,14 +540,43 @@ public class JsonParser {
   }
 
 
-
   /**
    * Line terminator point out to end of single-line comment
    */
   private boolean isLineTerminator(char c) {
     return c == LF || c == CR || c == LS || c == PS;
   }
-
+  private boolean isWhiteSpace(char c) {
+    switch (c) {
+      case 0x0009:
+      case 0x000A:
+      case 0x000B:
+      case 0x000C:
+      case 0x000D:
+      case 0x0020:
+      case 0x0085:
+      case 0x00A0:
+      case 0x1680:
+      case 0x2000:
+      case 0x2001:
+      case 0x2002:
+      case 0x2003:
+      case 0x2004:
+      case 0x2005:
+      case 0x2006:
+      case 0x2007:
+      case 0x2008:
+      case 0x2009:
+      case 0x200A:
+      case 0x2028:
+      case 0x2029:
+      case 0x202F:
+      case 0x205F:
+      case 0x3000:
+        return true;
+      default: return false;
+    }
+  }
   private boolean isHexadecimalChar(char c) {
     if (c >= '0' && c <= '9') {
       return true;
