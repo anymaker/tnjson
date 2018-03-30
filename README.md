@@ -1,5 +1,5 @@
 # tnjson
-Map to JSON converter and JSON to Map parser with support JSON5 
+Map to JSON converter and JSON to Map parser with support JSON5
 [https://spec.json5.org/](https://spec.json5.org/ "json5")
 
 # Introduction
@@ -10,12 +10,14 @@ What is a json-object? This is a string representation of javascript object.
 
 What is a javascript-object? This is a associative array where the string as key and any object as value.
 
-The most similar structure in the java is a Map<String, Object>.
+The most similar structure in the java is a Map<String, Object>.\
 This is natural json representation, and this is very useful for debug, research, and in support of production system.
+
+Of course, for json-object and json-array you can use any types which implement java.util.Map and java.util.Collection interface.
 
 # Requirement
  - Java 1.6
- - Not have any other dependency
+ - Not have any dependency
 
 
 # How to use
@@ -79,8 +81,7 @@ And we get this result :
     }
 
 
-By default in this parsing for collections using LinkedHashMap and ArrayList. This is very useful for debug.
-
+By default in this parsing for collections using LinkedHashMap and ArrayList. This is very useful for debug.\
 If you unlike LinkedHashMap or ArrayList, you can use method
 
 ```
@@ -179,7 +180,7 @@ You can use additional method for specify output format.
 ```java
     json = JsonSerializer.toJson(map, JsonSerializer.Mode.HARD);
 ```
-Will be generated compact json-string, where any non-digital and non-letter character in string will be replaced with sequence uXXXX.
+Will be generated compact json-string, where any non-digital and non-letter character in string will be replaced with sequence uXXXX.\
 This mode is default, because it has max compatibility with other clients.
 ```
 {"num":123,"str":"str\u0020one\u0020twho",...
@@ -189,7 +190,7 @@ This mode is default, because it has max compatibility with other clients.
 ```java
     json = JsonSerializer.toJson(map, JsonSerializer.Mode.LIGHT);
 ```
-Will be generated compact json-string, where non-digital and non-letter character in string will be stay in readable format, if it possible.
+Will be generated compact json-string, where non-digital and non-letter character in string will be stay in readable format, if it possible.\
 This format is more compact, but is not all client can parse it.
 ```
 {"num":123,"str":"str one twho",...
@@ -233,7 +234,7 @@ Will be generated json-string in pretty read format, where non-digital and non-l
 ```java
     json = JsonSerializer.toJson(map, JsonSerializer.Mode.FORMATTED);
 ```
-Will be generated json-string in max human readable format json5.
+Will be generated json-string in max human readable format json5.\
 See detail about json5 on https://json5.org/
 
 ```
