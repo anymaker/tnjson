@@ -63,7 +63,7 @@
     <sourceDirectory>src</sourceDirectory>
     <testSourceDirectory>test</testSourceDirectory>
     <directory>${basedir}/target</directory>
-    <finalName>${artifactId}-${version}</finalName>
+    <finalName>${project.artifactId}-${project.version}</finalName>
     <plugins>
 
       <plugin>
@@ -132,6 +132,7 @@
           <source>1.6</source>
           <target>1.6</target>
           <encoding>UTF-8</encoding>
+          <compilerArgument>-Xlint:unchecked</compilerArgument>
         </configuration>
       </plugin>
       

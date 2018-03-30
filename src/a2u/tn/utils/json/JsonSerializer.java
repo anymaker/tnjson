@@ -6,12 +6,16 @@ import java.util.Date;
 import java.util.Map;
 
 /**
- * MAP to JSON converter
+ * MAP to JSON converter.<br>
  * Every value in the Map must be
- *   either a simple value (string or number or boolean),
- *   either by a Map - a nested object (Map<CharSequence, Object>),
- *   either an array of values (Collection<Object>)
- *
+ * <ul>
+ *   <li>either a simple value: string, number, boolean, or other;</li>
+ *   <li>either by a Map such as Map&lt;String, Object&gt;;</li>
+ *   <li>either an array of values such as Collection&lt;Object&gt;.</li>
+ * </ul>
+ * <br>
+ * Of course, you can use for json-object any class inheritor of the java.util.Map interface.<br>
+ * For json-array you can use any class inheritor of the java.util.Collection interface.
  */
 public class JsonSerializer {
 
@@ -21,19 +25,19 @@ public class JsonSerializer {
    */
   public enum Mode {
     /**
-     * Will be generated compact json-string, where any non-digital and non-letter character will be replaced with sequence \\uXXXX.<br>
+     * Will be generated compact json-string, where any non-digital and non-letter character in string will be replaced with sequence uXXXX.<br>
      * This mode is default, because it has max compatibility with other clients.
      */
     HARD,
 
     /**
-     * Will be generated compact json-string, where non-digital and non-letter character will be stay in readable format, if it possible.<bR>
+     * Will be generated compact json-string, where non-digital and non-letter character in string will be stay in readable format, if it possible.<bR>
      * This format is more compact, but is not all client can parse it.
      */
     LIGHT,
 
     /**
-     * Will be generated json-string in pretty read format, where non-digital and non-letter character will be stay in readable format, if it possible.<bR>
+     * Will be generated json-string in pretty read format, where non-digital and non-letter character in string will be stay in readable format, if it possible.<bR>
      *
      */
     FORMATTED,
@@ -45,14 +49,17 @@ public class JsonSerializer {
     JSON5
   }
 
+  private JsonSerializer() {
+    //hide this
+  }
 
   /**
    * Convert Map to JSON.<br>
-   * Will be generated compact json-string, where any non-digital and non-letter character will be replaced with sequence \\uXXXX.
+   * Will be generated compact json-string, where any non-digital and non-letter character in string will be replaced with sequence uXXXX.
    * @param data Map vith data to convert
    * @return JSON-string
    */
-  public static String toJson(Map<? extends CharSequence, ?> data) {
+  public static String toJson(Map data) {
     StringBuilder b = new StringBuilder();
     addMap(data, b, Mode.HARD, 0);
     String json = b.toString();
@@ -66,7 +73,7 @@ public class JsonSerializer {
    * @return JSON-string
    * @see Mode
    */
-  public static String toJson(Map<? extends CharSequence, ?> data, Mode mode) {
+  public static String toJson(Map data, Mode mode) {
     StringBuilder b = new StringBuilder();
     addMap(data, b, mode, 0);
     String json = b.toString();
@@ -75,17 +82,18 @@ public class JsonSerializer {
 
 
 
-  private static void addMap(Map<? extends CharSequence, ?> map, StringBuilder b, Mode mode, int level) {
+  private static void addMap(Map map, StringBuilder b, Mode mode, int level) {
     int valuelevel = level + 1;
 
     b.append("{");
     endLine(b, mode);
 
     boolean hasEntry = false;
-    for(Map.Entry<? extends CharSequence, ?> entry : map.entrySet()) {
-      CharSequence key = entry.getKey();
+    for(Object keyObj : map.keySet()) {
+      String key = String.valueOf(keyObj);
       key = codeKey(key, mode);
-      Object value = entry.getValue();
+
+      Object value = map.get(keyObj);
 
       if (hasEntry) {
         b.append(",");
@@ -200,7 +208,7 @@ public class JsonSerializer {
       b.append(v);
     }
     else if (value instanceof Map) {
-      addMap((Map<? extends CharSequence, ?>) value, b, mode, level);
+      addMap((Map) value, b, mode, level);
     }
     else if (value instanceof Collection) {
       addList((Collection) value, b, mode, level);
