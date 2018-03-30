@@ -20,6 +20,21 @@ This is natural json representation, and this is very useful for debug, research
 
 # How to use
 
+
+## Get jar
+You can use maven dependensy
+```xml
+    <dependency>
+      <groupId>com.github.anymaker</groupId>
+      <artifactId>tnjson</artifactId>
+      <version>1.0</version>
+    </dependency>
+```
+Or download jar from sonatype.org   \
+SNAPSHOT: https://oss.sonatype.org/content/repositories/snapshots/com/github/anymaker/tnjson/   \
+RELEASE: https://oss.sonatype.org/service/local/repositories/public/content/com/github/anymaker/tnjson/1.0/tnjson-1.0.jar
+
+
 ## Parsing 
 
 Suppose we have the json5-string:
@@ -102,7 +117,7 @@ For example:
 
 
 
-## Convert to json
+## Convertion to json
 
 
 Suppose we must generate next json:
@@ -156,4 +171,87 @@ import a2u.tn.utils.json.JsonSerializer;
     String json = JsonSerializer.toJson(map);
 ```
 
-It's all.
+###    Specify output json format
+
+You can use additional method for specify output format.
+
+######    HARD
+```java
+    json = JsonSerializer.toJson(map, JsonSerializer.Mode.HARD);
+```
+Will be generated compact json-string, where any non-digital and non-letter character in string will be replaced with sequence uXXXX.
+This mode is default, because it has max compatibility with other clients.
+```
+{"num":123,"str":"str\u0020one\u0020twho",...
+```
+
+######    LIGHT
+```java
+    json = JsonSerializer.toJson(map, JsonSerializer.Mode.LIGHT);
+```
+Will be generated compact json-string, where non-digital and non-letter character in string will be stay in readable format, if it possible.
+This format is more compact, but is not all client can parse it.
+```
+{"num":123,"str":"str one twho",...
+```
+
+######    FORMATTED
+```java
+    json = JsonSerializer.toJson(map, JsonSerializer.Mode.FORMATTED);
+```
+Will be generated json-string in pretty read format, where non-digital and non-letter character in string will be stay in readable format, if it possible.
+```json
+{
+  "num": 123,
+  "str": "str one twho",
+  "emptyobj": {
+
+  },
+  "emptylist": [
+    
+  ],
+  "innermap": {
+    "innernum": 345
+  },
+  "list1": [
+    789,
+    987
+  ],
+  "list2": [
+    {
+      "innernum": 345
+    },
+    {
+      "innernum": 345
+    }
+  ]
+}
+```
+
+
+######    JSON5
+```java
+    json = JsonSerializer.toJson(map, JsonSerializer.Mode.FORMATTED);
+```
+Will be generated json-string in max human readable format json5.
+See detail about json5 on https://json5.org/
+
+```
+{
+  unquoted: "and you can quote me on that",
+  singleQuotes: "I can use \"double quotes\" here",
+  lineBreaks: "Look, Mom! /
+No \\n's!",
+  hexadecimal: 912559,
+  leadingDecimalPoint: 0.8675309,
+  andTrailing: 8675309.0,
+  positiveSign: 1,
+  trailingComma: "in objects",
+  andIn: [
+    "arrays"
+  ],
+  backwardsCompatible: "with JSON"
+}
+```
+
+--
