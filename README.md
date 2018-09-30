@@ -255,4 +255,35 @@ No \\n's!",
 }
 ```
 
+
+###    Advanced setting of output json
+
+For advanced
+```
+String json = JsonSerializer.Settings.init()... TUNING ...serialize(map);
+```
+Where
+JsonSerializer.Settings.init() - creating new setup
+serialize(map) - run searilization
+TUNING - some functions:
+
+withoutKeyQuote() - disable quotation generation for the key
+singleQuote() - Use single quotes
+formated() - Format the final json to pretty
+readable() - Leave characters in a strings as readable as possible
+allowMultiRowString() - Allow linefeed in a strings
+
+Example, for generate json5 you can use
+```
+String json = JsonSerializer.Settings.init().readable().formated().withoutKeyQuote().allowMultiRowString().serialize(map);
+```
+or
+```
+JsonSerializer.Settings settings = JsonSerializer.Settings.init().readable().formated().withoutKeyQuote().allowMultiRowString();
+String json1 = settings.serialize(map1);
+String json2 = settings.serialize(map2);
+String json3 = settings.serialize(map3);
+```
+
+
 --

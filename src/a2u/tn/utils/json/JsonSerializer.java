@@ -20,6 +20,77 @@ import java.util.Map;
 public class JsonSerializer {
 
   /**
+   * json generator tuning
+   */
+  public static class Settings {
+    private boolean isKeyQuoted = true;
+    private char quoteSymbol = '"';
+    private boolean isFormated = false;
+    private boolean isStayReadable = false;
+    private boolean isAllowMultiRowString = false;
+    private boolean isKeepNull = false;
+
+    /**
+     * Create new Settings
+     * @return new object with default settings
+     */
+    public static Settings init() {
+      return new Settings();
+    }
+
+    /**
+     * Disable quotation generation for the key
+     */
+    public Settings withoutKeyQuote() {
+      isKeyQuoted = false;
+      return this;
+    }
+
+    /**
+     * Use single quotes
+     */
+    public Settings singleQuote() {
+      quoteSymbol = '\'';
+      return this;
+    }
+
+    /**
+     * Format the final json
+     */
+    public Settings formated() {
+      isFormated = true;
+      return this;
+    }
+
+    /**
+     * Leave characters in a strings as readable as possible
+     */
+    public Settings readable() {
+      isStayReadable = true;
+      return this;
+    }
+
+    /**
+     * Allow linefeed in a strings
+     */
+    public Settings allowMultiRowString() {
+      isAllowMultiRowString = true;
+      return this;
+    }
+
+    /**
+     * Allow null values
+     */
+    public Settings keepNull() {
+      isKeepNull = true;
+      return this;
+    }
+    public String serialize(Map data) {
+      return toJson(data, this);
+    }
+  }
+
+  /**
    * JSON generation mode
    * @see #toJson(Map, Mode)
    */
@@ -46,8 +117,21 @@ public class JsonSerializer {
      * Will be generated json-string in max human readable format json5.<br>
      * See detail about json5 on https://json5.org/
      */
-    JSON5
+    JSON5,
+
+    /**
+     * JSON5 like, but without linefeed
+     */
+    JSON5COMPACT
   }
+
+
+
+  private static final Settings SET_HARD         = Settings.init();
+  private static final Settings SET_LIGHT        = Settings.init().readable();
+  private static final Settings SET_FORMATTED    = Settings.init().readable().formated();
+  private static final Settings SET_JSON5        = Settings.init().readable().formated().withoutKeyQuote().allowMultiRowString();
+  private static final Settings SET_JSON5COMPACT = Settings.init().readable().withoutKeyQuote().singleQuote();
 
   private JsonSerializer() {
     //hide this
@@ -60,10 +144,7 @@ public class JsonSerializer {
    * @return JSON-string
    */
   public static String toJson(Map data) {
-    StringBuilder b = new StringBuilder();
-    addMap(data, b, Mode.HARD, 0);
-    String json = b.toString();
-    return json;
+    return SET_HARD.serialize(data);
   }
 
   /**
@@ -74,53 +155,74 @@ public class JsonSerializer {
    * @see Mode
    */
   public static String toJson(Map data, Mode mode) {
+    switch (mode) {
+      case HARD:         return SET_HARD.serialize(data);
+      case LIGHT:        return SET_LIGHT.serialize(data);
+      case FORMATTED:    return SET_FORMATTED.serialize(data);
+      case JSON5:        return SET_JSON5.serialize(data);
+      case JSON5COMPACT: return SET_JSON5COMPACT.serialize(data);
+      default:           return SET_HARD.serialize(data);
+    }
+  }
+
+  /**
+   * Convert Map to JSON with settings
+   * @param data data Map vith data to convert
+   * @param settings json generator tuning
+   * @return JSON-string
+   * @see Settings
+   */
+  public static String toJson(Map data, Settings settings) {
     StringBuilder b = new StringBuilder();
-    addMap(data, b, mode, 0);
+    addMap(data, b, settings, 0);
     String json = b.toString();
     return json;
   }
 
 
-
-  private static void addMap(Map map, StringBuilder b, Mode mode, int level) {
+  private static void addMap(Map map, StringBuilder b, Settings settings, int level) {
     int valuelevel = level + 1;
 
     b.append("{");
-    endLine(b, mode);
+    endLine(b, settings);
 
     boolean hasEntry = false;
     for(Object keyObj : map.keySet()) {
       String key = String.valueOf(keyObj);
-      key = codeKey(key, mode);
-
       Object value = map.get(keyObj);
+
+      if (value == null && !settings.isKeepNull) {
+        continue;
+      }
+
+      key = codeKey(key, settings);
 
       if (hasEntry) {
         b.append(",");
-        endLine(b, mode);
+        endLine(b, settings);
       }
       else {
         hasEntry = true;
       }
 
-      startLine(b, mode, valuelevel);
+      startLine(b, settings, valuelevel);
       b.append(key);
 
       b.append(":");
-      if (mode == Mode.FORMATTED || mode == Mode.JSON5) {
+      if (settings.isFormated) {
         b.append(" ");
       }
 
-      addValue(value, b, mode, valuelevel);
+      addValue(value, b, settings, valuelevel);
     }
 
-    endLine(b, mode);
-    startLine(b, mode, level);
+    endLine(b, settings);
+    startLine(b, settings, level);
     b.append("}");
 
   }
 
-  private static String codeKey(CharSequence key, Mode mode) {
+  private static String codeKey(CharSequence key, Settings settings) {
     StringBuilder b = new StringBuilder();
     int len = key.length();
     boolean validIdenty = true;
@@ -137,49 +239,49 @@ public class JsonSerializer {
 
     }
 
-    if (mode == Mode.JSON5 && validIdenty && Character.isLetter(key.charAt(0))) {
+    if (!settings.isKeyQuoted && validIdenty && Character.isLetter(key.charAt(0))) {
       return b.toString();
     }
     else {
-      return "\"" + b.toString() + "\"";
+      return settings.quoteSymbol + b.toString() + settings.quoteSymbol;
     }
   }
 
-  private static void addList(Collection list, StringBuilder b, Mode mode, int level) {
+  private static void addList(Collection list, StringBuilder b, Settings settings, int level) {
     int itemlevel = level + 1;
 
     b.append("[");
 
-    endLine(b, mode);
-    startLine(b, mode, itemlevel);
+    endLine(b, settings);
+    startLine(b, settings, itemlevel);
 
     boolean hasEntry = false;
     for (Object value : list) {
 
       if (hasEntry) {
         b.append(",");
-        endLine(b, mode);
-        startLine(b, mode, itemlevel);
+        endLine(b, settings);
+        startLine(b, settings, itemlevel);
       }
       else {
         hasEntry = true;
       }
 
-      addValue(value, b, mode, itemlevel);
+      addValue(value, b, settings, itemlevel);
     }
-    endLine(b, mode);
-    startLine(b, mode, level);
+    endLine(b, settings);
+    startLine(b, settings, level);
     b.append("]");
 
   }
 
-  private static void addValue(Object value, StringBuilder b, Mode mode, int level) {
+  private static void addValue(Object value, StringBuilder b, Settings settings, int level) {
 
     if (value == null) {
       b.append("null");
     }
     else if (value instanceof String) {
-      addString((String) value, b, mode);
+      addString((String) value, b, settings);
     }
     else if (value instanceof Byte) {
       addNum(value, b);
@@ -208,45 +310,68 @@ public class JsonSerializer {
       b.append(v);
     }
     else if (value instanceof Map) {
-      addMap((Map) value, b, mode, level);
+      addMap((Map) value, b, settings, level);
     }
     else if (value instanceof Collection) {
-      addList((Collection) value, b, mode, level);
+      addList((Collection) value, b, settings, level);
     }
 
     else {
       String v = String.valueOf(value);
-      addString(v, b, mode);
+      addString(v, b, settings);
     }
 
   }
 
-  private static void addString(String str, StringBuilder b, Mode mode) {
-    b.append('"');
-    int len = str.length();
-    for(int p=0; p<len; p++) {
-      char c = str.charAt(p);
-      if (Character.isLetterOrDigit(c)) {
-        b.append(c);
-      }
-      else if (mode == Mode.HARD) {
-        b.append(unicodeEscaped(c));
-      }
-      else if (mode == Mode.LIGHT || mode == Mode.FORMATTED) {
-        b.append(charToReadable(c));
-      }
-      else if (mode == Mode.JSON5) {
-        switch (c) {
-          case '\'': b.append("'"); break;
-          case '\n': b.append("/\n"); break;
-          default: b.append(charToReadable(c)); break;
+  private static void addString(String str, StringBuilder b, Settings settings) {
+    if (str == null) {
+      b.append("null");
+    }
+    else {
+      b.append(settings.quoteSymbol);
+
+      int len = str.length();
+      for (int p = 0; p < len; p++) {
+        char c = str.charAt(p);
+        if (Character.isLetterOrDigit(c)) {
+          b.append(c);
+        }
+        else if (c == '\n') {
+          if (settings.isAllowMultiRowString) {
+            b.append("/\n");
+          }
+          else if (settings.isStayReadable) {
+            b.append(charToReadable(c));
+          }
+          else {
+            b.append(unicodeEscaped(c));
+          }
+        }
+        else if (c == settings.quoteSymbol) {
+          if (settings.isStayReadable) {
+            b.append(charToReadable(c));
+          }
+          else {
+            b.append(unicodeEscaped(c));
+          }
+        }
+        else {
+          if (settings.isStayReadable) {
+            if (c == '\'' || c == '"') {
+              b.append(c);
+            }
+            else {
+              b.append(charToReadable(c));
+            }
+          }
+          else {
+            b.append(unicodeEscaped(c));
+          }
         }
       }
-      else {
-        b.append(unicodeEscaped(c));
-      }
+
+      b.append(settings.quoteSymbol);
     }
-    b.append('"');
   }
 
   private static void addNum(Object num, StringBuilder b) {
@@ -311,13 +436,13 @@ public class JsonSerializer {
     return "\\u" + Integer.toHexString(ch);
   }
 
-  private static void endLine(StringBuilder b, Mode mode) {
-    if (mode == Mode.FORMATTED || mode == Mode.JSON5) {
+  private static void endLine(StringBuilder b, Settings settin) {
+    if (settin.isFormated) {
       b.append("\n");
     }
   }
-  private static void startLine(StringBuilder b, Mode mode, int level) {
-    if (mode != Mode.FORMATTED && mode != Mode.JSON5) {
+  private static void startLine(StringBuilder b, Settings settin, int level) {
+    if (!settin.isFormated) {
       return;
     }
 
