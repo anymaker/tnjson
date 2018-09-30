@@ -29,12 +29,12 @@ You can use maven dependensy
     <dependency>
       <groupId>com.github.anymaker</groupId>
       <artifactId>tnjson</artifactId>
-      <version>1.0</version>
+      <version>1.2</version>
     </dependency>
 ```
 Or download jar from sonatype.org   \
 SNAPSHOT: https://oss.sonatype.org/content/repositories/snapshots/com/github/anymaker/tnjson/   \
-RELEASE: https://oss.sonatype.org/service/local/repositories/public/content/com/github/anymaker/tnjson/1.0/tnjson-1.0.jar
+RELEASE: https://oss.sonatype.org/service/local/repositories/public/content/com/github/anymaker/tnjson/1.2/tnjson-1.2.jar
 
 
 ## Parsing 
