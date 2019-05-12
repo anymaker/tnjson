@@ -197,25 +197,35 @@ import a2u.tn.utils.json.TnJson;
 ###    Incoming data
 For serialization you can use any data - Map, Collection, array, or any other object.
 But, as default some types return next result:
-
-| java.util.Date          | value obtained as data.getTime(),             |                    |
-| java.lang.Boolean       | true or false                                 |                    |
-| java.time.LocalDate     | value corespond ISO-8601 '2011-12-03'         | yyyy-MM-dd         |
-| java.time.LocalTime     | value corespond ISO-8601 '10:15:30'           | hh:mm:ss           |
-| java.time.LocalDateTime | value corespond ISO-8601 '2011-12-03T10:15:30'| yyyy-MM-ddThh:mm:ss|
-
+<table>
+<tr>
+   <td>java.util.Date</td> <td>value obtained as data.getTime()</td> <td></td>
+</tr>
+<tr>
+   <td>java.lang.Boolean</td> <td>true or false</td> <td></td>
+</tr>
+<tr>
+   <td>java.time.LocalDate</td> <td>value corespond ISO-8601 '2011-12-03'</td> <td>yyyy-MM-dd</td>
+</tr>
+<tr>
+   <td>java.time.LocalTime</td> <td>value corespond ISO-8601 '10:15:30'</td> <td>hh:mm:ss</td>
+</tr>
+<tr>
+   <td>java.time.LocalDateTime</td> <td>value corespond ISO-8601 '2011-12-03T10:15:30'</td> <td>yyyy-MM-ddThh:mm:ss</td>
+</tr>
+</table>
 If incoming object is not a
 
 Character, CharSequence, Number, Boolean,
 Date, LocalDate, LocalTime, LocalDateTime,
 Map, Collection, and is not array
 
-then attempt is made to get value from the method toJson().
+then attempt is made to get value from the method toJson().   \
 If this method is absent, then value collect from fields with public and default modifiers.
 
 You can override this behavior using handlers
-  TnJsonBuilder.IPathHandler - for handing generating json in concrete path
-  TnJsonBuilder.ITypeHandler - or handing generating json by concrete type.
+ -  TnJsonBuilder.IPathHandler - for handing generating json in concrete path
+ -  TnJsonBuilder.ITypeHandler - or handing generating json by concrete type.
 
 
 
@@ -317,18 +327,22 @@ String json = jsonBuilder.buildJson(data);
 ```
 
 Where
-TnJson.builder() - creating new builder
-buildJson(data) - run searilization
-TUNING - some functions:
+<table>
+ <tr><td>TnJson.builder()</td><td>creating new builder</td></tr>
+ <tr><td>buildJson(data)</td> <td>run searilization</td></tr>
+</table> 
 
-withoutKeyQuote() - disable quotation generation for the key
-singleQuote()     - Use single quotes
-formated()        - Format the final json to pretty
-readable()        - Leave characters in a strings as readable as possible
-allowMultiRowString() - Allow linefeed in a strings
-keepNull()        - Allow null values
-handlePath(IPathHandler pathHandler) - Set handler for generating json in concrete path
-handleType(ITypeHandler typeHandler) - Set handler for generating json by concrete type
+TUNING - some functions:
+<table>
+ <tr><td>withoutKeyQuote()</td> <td>disable quotation generation for the key</td></tr>
+ <tr><td>singleQuote()</td> <td>Use single quotes</td></tr>
+ <tr><td>formated()</td> <td>Format the final json to pretty</td></tr>
+ <tr><td>readable()</td> <td>Leave characters in a strings as readable as possible</td></tr>
+ <tr><td>allowMultiRowString()</td> <td>Allow linefeed in a strings</td></tr>
+ <tr><td>keepNull()</td> <td>Allow null values</td></tr>
+ <tr><td>handlePath(IPathHandler pathHandler)</td> <td>Set handler for generating json in concrete path</td></tr>
+ <tr><td>handleType(ITypeHandler typeHandler)</td> <td>Set handler for generating json by concrete type</td></tr>
+</table> 
 
 Example, for generate json5 you can use
 ```
