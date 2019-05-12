@@ -16,8 +16,28 @@ This is natural json representation, and this is very useful for debug, research
 Of course, for json-object and json-array you can use any types which implement java.util.Map and java.util.Collection interface.
 
 # Requirement
- - Java 1.6
+ - Java 1.8
  - Not have any dependency
+
+
+# Release note
+
+Version 2.x
+
+Created decorator 'TnJson' for greater convenience in large projects.
+Autocomplete in IDE produces a more relevant result with less effort.
+More short syntaxis.
+
+While serializating:
+ - Supporting incoming data with any type - Map, Collection, array, or any other object.
+ - Supporting LocalDate, LocalTime and LocalDateTime.
+ - Handlers for generating json in concrete path and by concrete type.
+
+Incompatible with tnjson-1.x because:
+ - Java with version less then 1.8 is unsupported.
+ - Classes JsonSerializer and JsonParser now is internal, and you not haw access to there.
+ - You must use decorator TnJson for access to functional.
+ - Internal class JsonSerializer.Settings migrated to TnJsonBuilder.
 
 
 # How to use
@@ -29,12 +49,12 @@ You can use maven dependensy
     <dependency>
       <groupId>com.github.anymaker</groupId>
       <artifactId>tnjson</artifactId>
-      <version>1.2</version>
+      <version>2.0</version>
     </dependency>
 ```
 Or download jar from sonatype.org   \
 SNAPSHOT: https://oss.sonatype.org/content/repositories/snapshots/com/github/anymaker/tnjson/   \
-RELEASE: https://oss.sonatype.org/service/local/repositories/public/content/com/github/anymaker/tnjson/1.2/tnjson-1.2.jar
+RELEASE: https://oss.sonatype.org/service/local/repositories/public/content/com/github/anymaker/tnjson/2.0/tnjson-2.0.jar
 
 
 ## Parsing 
@@ -59,27 +79,27 @@ No \\n's!",
 In a code:
 
 ```java
-import a2u.tn.utils.json.JsonParser;
+import a2u.tn.utils.json.TnJson;
 ...
 
-Map<String, Object> result = JsonParser.parse(json);
+Map<String, Object> result = TnJson.parse(json);
 ```
 
 And we get this result :
-
+```
     LinkedHashMap: result {
-      unquoted -> Stirng: "and you can quote me on that"
-      singleQuotes -> Stirng: "I can use \"double quotes\" here"
-      lineBreaks -> Stirng: "Look, Mom! \nNo \\n's!"
-      hexadecimal -> Integer: 912559
+      unquoted            -> Stirng: "and you can quote me on that"
+      singleQuotes        -> Stirng: "I can use \"double quotes\" here"
+      lineBreaks          -> Stirng: "Look, Mom! \nNo \\n's!"
+      hexadecimal         -> Integer: 912559
       leadingDecimalPoint -> Double: 0.8675309
-      andTrailing -> Double: 8675309.0
-      positiveSign -> Integer: 1
-      trailingComma -> Stirng: "in objects"
-      andIn -> ArrayList:[ Stirng: "arrays" ] size = 1
+      andTrailing         -> Double: 8675309.0
+      positiveSign        -> Integer: 1
+      trailingComma       -> Stirng: "in objects"
+      andIn               -> ArrayList:[ Stirng: "arrays" ] size = 1
       backwardsCompatible -> Stirng: "with JSON"
     }
-
+```
 
 By default in this parsing for collections using LinkedHashMap and ArrayList. This is very useful for debug.\
 If you unlike LinkedHashMap or ArrayList, you can use method
@@ -95,24 +115,24 @@ For example:
     Map<String, Object> result;
     json = "{obj1:{num1:123, obj2:{list:[456, 789]}}}";
 
-    result = JsonParser.parse(json,
-                             new JsonParser.IGetCollection() {
-                               @Override
-                               public Map<String, Object> forObject(String path) {
-                                 if (path.equals("root.obj1.obj2")) {
-                                   return new HashMap<String, Object>();
-                                 }
-                                 return null;
-                               }
+    result = TnJson.parse(json,
+                          new JsonParser.IGetCollection() {
+                            @Override
+                            public Map<String, Object> forObject(String path) {
+                              if (path.equals("root.obj1.obj2")) {
+                                return new HashMap<String, Object>();
+                              }
+                              return null;
+                            }
 
-                               @Override
-                               public Collection forList(String path) {
-                                 if (path.equals("root.obj1.obj2.list")) {
-                                   return new HashSet();
-                                 }
-                                 return null;
-                               }
-                             });
+                            @Override
+                            public Collection forList(String path) {
+                              if (path.equals("root.obj1.obj2.list")) {
+                                return new HashSet();
+                              }
+                              return null;
+                            }
+                          });
 
 ```
 
@@ -142,7 +162,7 @@ Suppose we must generate next json:
 
 #### Import
 ```java
-import a2u.tn.utils.json.JsonSerializer;
+import a2u.tn.utils.json.TnJson;
 ```
 
 
@@ -169,8 +189,34 @@ import a2u.tn.utils.json.JsonSerializer;
 
 ####    Generate json
 ```java
-    String json = JsonSerializer.toJson(map);
+    String json = TnJson.toJson(map);
 ```
+
+
+
+###    Incoming data
+For serialization you can use any data - Map, Collection, array, or any other object.
+But, as default some types return next result:
+java.util.Date          - value obtained as data.getTime(),
+java.lang.Boolean       - true | false
+java.time.LocalDate     - value corespond ISO-8601 '2011-12-03'          yyyy-MM-dd
+java.time.LocalTime     - value corespond ISO-8601 '10:15:30'            hh:mm:ss
+java.time.LocalDateTime - value corespond ISO-8601 '2011-12-03T10:15:30' yyyy-MM-ddThh:mm:ss
+
+If incoming object is not a
+
+Character, CharSequence, Number, Boolean,
+Date, LocalDate, LocalTime, LocalDateTime,
+Map, Collection, and is not array
+
+then attempt is made to get value from the method toJson().
+If this method is absent, then value collect from fields with public and default modifiers.
+
+You can override this behavior using handlers
+  TnJsonBuilder.IPathHandler - for handing generating json in concrete path
+  TnJsonBuilder.ITypeHandler - or handing generating json by concrete type.
+
+
 
 ###    Specify output json format
 
@@ -178,7 +224,7 @@ You can use additional method for specify output format.
 
 ######    HARD
 ```java
-    json = JsonSerializer.toJson(map, JsonSerializer.Mode.HARD);
+    json = TnJson.toJson(data, TnJson.Mode.HARD);
 ```
 Will be generated compact json-string, where any non-digital and non-letter character in string will be replaced with sequence uXXXX.\
 This mode is default, because it has max compatibility with other clients.
@@ -188,7 +234,7 @@ This mode is default, because it has max compatibility with other clients.
 
 ######    LIGHT
 ```java
-    json = JsonSerializer.toJson(map, JsonSerializer.Mode.LIGHT);
+    json = TnJson.toJson(data, TnJson.Mode.LIGHT);
 ```
 Will be generated compact json-string, where non-digital and non-letter character in string will be stay in readable format, if it possible.\
 This format is more compact, but is not all client can parse it.
@@ -198,7 +244,7 @@ This format is more compact, but is not all client can parse it.
 
 ######    FORMATTED
 ```java
-    json = JsonSerializer.toJson(map, JsonSerializer.Mode.FORMATTED);
+    json = TnJson.toJson(data, TnJson.Mode.FORMATTED);
 ```
 Will be generated json-string in pretty read format, where non-digital and non-letter character in string will be stay in readable format, if it possible.
 ```json
@@ -232,7 +278,7 @@ Will be generated json-string in pretty read format, where non-digital and non-l
 
 ######    JSON5
 ```java
-    json = JsonSerializer.toJson(map, JsonSerializer.Mode.FORMATTED);
+    json = TnJson.toJson(data, TnJson.Mode.JSON5);
 ```
 Will be generated json-string in max human readable format json5.\
 See detail about json5 on https://json5.org/
@@ -258,31 +304,41 @@ No \\n's!",
 
 ###    Advanced setting of output json
 
-For advanced
+For advanced you can use builder for specify any aspect JSON generation
 ```
-String json = JsonSerializer.Settings.init()... TUNING ...serialize(map);
-```
-Where
-JsonSerializer.Settings.init() - creating new setup
-serialize(map) - run searilization
-TUNING - some functions:
-
-withoutKeyQuote() - disable quotation generation for the key
-singleQuote() - Use single quotes
-formated() - Format the final json to pretty
-readable() - Leave characters in a strings as readable as possible
-allowMultiRowString() - Allow linefeed in a strings
-
-Example, for generate json5 you can use
-```
-String json = JsonSerializer.Settings.init().readable().formated().withoutKeyQuote().allowMultiRowString().serialize(map);
+String json = TnJson.builder() ... TUNING ... .buildJson(data);
 ```
 or
 ```
-JsonSerializer.Settings settings = JsonSerializer.Settings.init().readable().formated().withoutKeyQuote().allowMultiRowString();
-String json1 = settings.serialize(map1);
-String json2 = settings.serialize(map2);
-String json3 = settings.serialize(map3);
+TnJson jsonBuilder = TnJson.builder() ... TUNING
+...
+String json = jsonBuilder.buildJson(data);
+```
+
+Where
+TnJson.builder() - creating new builder
+buildJson(data) - run searilization
+TUNING - some functions:
+
+withoutKeyQuote() - disable quotation generation for the key
+singleQuote()     - Use single quotes
+formated()        - Format the final json to pretty
+readable()        - Leave characters in a strings as readable as possible
+allowMultiRowString() - Allow linefeed in a strings
+keepNull()        - Allow null values
+handlePath(IPathHandler pathHandler) - Set handler for generating json in concrete path
+handleType(ITypeHandler typeHandler) - Set handler for generating json by concrete type
+
+Example, for generate json5 you can use
+```
+String json = TnJson.builder().readable().formated().withoutKeyQuote().allowMultiRowString().buildJson(map);
+```
+or
+```
+TnJson jsonBuilder = TnJson.builder().readable().formated().withoutKeyQuote().allowMultiRowString();
+String json1 = jsonBuilder.buildJson(data1);
+String json2 = jsonBuilder.buildJson(data2);
+String json3 = jsonBuilder.buildJson(data3);
 ```
 
 

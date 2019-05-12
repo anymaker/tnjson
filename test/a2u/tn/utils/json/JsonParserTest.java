@@ -35,21 +35,21 @@ public class JsonParserTest {
     Map<String, Object> result;
 
     json = "{\"num\":123}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(123, result.get("num"));
 
     json = "{\"num1\":123, \"num2\": 456}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(123, result.get("num1"));
     assertEquals(456, result.get("num2"));
 
     json = "{\"num1\":123,\"num2\":456}";   //compact
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(123, result.get("num1"));
     assertEquals(456, result.get("num2"));
 
     json = "{ \"num1\" : 123, \"num2\" : 456 }";   //max
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(123, result.get("num1"));
     assertEquals(456, result.get("num2"));
 
@@ -57,28 +57,28 @@ public class JsonParserTest {
            "\t\"num1\": 123,\n" +
            "\t\"num2\": 456\n" +
            "}";   //formated
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(123, result.get("num1"));
     assertEquals(456, result.get("num2"));
 
 
     json = "{\"str\": \"str\"}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals("str", result.get("str"));
 
 
     json = "{\"list\": [111,222]}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(111, ((List)result.get(JsonParser.DEFAULT_LIST_KEY)).get(0));
     assertEquals(222, ((List) result.get(JsonParser.DEFAULT_LIST_KEY)).get(1));
 
     json = "{\"list\": [\"111\",\"222\"]}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals("111", ((List) result.get(JsonParser.DEFAULT_LIST_KEY)).get(0));
     assertEquals("222", ((List) result.get(JsonParser.DEFAULT_LIST_KEY)).get(1));
 
     json = "{\"list\": [{\"num\":111, \"str\":\"str111\"}, {\"num\":222, \"str\":\"str222\"}]}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(111, ((Map) ((List) result.get(JsonParser.DEFAULT_LIST_KEY)).get(0)).get("num"));
     assertEquals("str222", ((Map) ((List) result.get(JsonParser.DEFAULT_LIST_KEY)).get(1)).get("str"));
   }
@@ -88,23 +88,23 @@ public class JsonParserTest {
     Map<String, Object> result;
 
     json = "{\"str\": \"str\"}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals("str", result.get("str"));
 
     json = "{\"str\": \"str\\u0040a\"}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals("str@a", result.get("str"));
 
     json = "{\"str\": \"str\\x40\"}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals("str@", result.get("str"));
 
     json = "{\"str\": \"str\\x40gg\"}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals("str@gg", result.get("str"));
 
     json = "{\"str\": \"\\\"AAA\\\"\"}"; // str = "AAA"
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals("\"AAA\"", result.get("str"));
   }
 
@@ -113,15 +113,15 @@ public class JsonParserTest {
     Map<String, Object> result;
 
     json = "{num:true}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(true, result.get("num"));
 
     json = "{num:false}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(false, result.get("num"));
 
     json = "{num:null}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(null, result.get("num"));
   }
 
@@ -131,21 +131,21 @@ public class JsonParserTest {
 
 
     json = "{num:123,}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(123, result.get("num"));
 
     json = "{num:123, }";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(123, result.get("num"));
 
 
     json = "{\"list\": [111,222,]}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(111, ((List)result.get(JsonParser.DEFAULT_LIST_KEY)).get(0));
     assertEquals(222, ((List) result.get(JsonParser.DEFAULT_LIST_KEY)).get(1));
 
     json = "{\"list\": [111,222, ]}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(111, ((List)result.get(JsonParser.DEFAULT_LIST_KEY)).get(0));
     assertEquals(222, ((List) result.get(JsonParser.DEFAULT_LIST_KEY)).get(1));
   }
@@ -155,76 +155,76 @@ public class JsonParserTest {
     Map<String, Object> result;
 
     json = "{num:123}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(123, result.get("num"));
 
     json = "{num:+123}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(123, result.get("num"));
 
     json = "{num:-123}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(-123, result.get("num"));
 
 
     json = "{num:123.}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(123.0, result.get("num"));
 
     json = "{num:.123}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(0.123, result.get("num"));
 
 
 
     json = "{num:123e-456, }";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(Double.parseDouble("123e-456"), result.get("num"));
 
 
 
     json = "{num:0xdecaf, }";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(0xdecaf, result.get("num"));
 
     json = "{num:-0xC0FFEE, }";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(-0xC0FFEE, result.get("num"));
 
 
 
     json = "{num:Infinity, }";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(Double.POSITIVE_INFINITY, result.get("num"));
 
     json = "{num:+Infinity, }";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(Double.POSITIVE_INFINITY, result.get("num"));
 
     json = "{num:-Infinity, }";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(Double.NEGATIVE_INFINITY, result.get("num"));
 
 
     json = "{num:NaN, }";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(Double.NaN, result.get("num"));
 
 
     json = "{num:"+ Integer.MAX_VALUE +"}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(2147483647L, result.get("num"));
 
     json = "{num:" + Integer.MAX_VALUE/10 + "}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(214748364, result.get("num"));
 
     json = "{num:" + Long.MAX_VALUE + "}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(new BigInteger("9223372036854775807"), result.get("num"));
 
     json = "{num:" + Long.MAX_VALUE/10 + "}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(922337203685477580L, result.get("num"));
 
   }
@@ -235,36 +235,36 @@ public class JsonParserTest {
 
     //multirow comment /* */
     json = "{/*\"num1\"*/sss:123, \"num2\": 456}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(123, result.get("sss"));
 
     json = "{sss/*\"num1\"*/:123, \"num2\": 456}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(123, result.get("sss"));
 
     json = "{\"num1\":123/*, \"num2\": 456*/}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(123, result.get("num1"));
 
     json = "{\"num1\":123,/* \"num2\": 456*/}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(123, result.get("num1"));
 
     json = "{\"num1\":123, /*\"num2\": 456*/}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(123, result.get("num1"));
 
     json = "{/*\"num1\":123,*/ \"num2\": 456}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(456, result.get("num2"));
 
     json = "{\"num1\":/*123*/321, \"num2\": 456}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(321, result.get("num1"));
     assertEquals(456, result.get("num2"));
 
     json = "{\"num1\":/*123*/ 321, \"num2\": 456}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(321, result.get("num1"));
     assertEquals(456, result.get("num2"));
 
@@ -273,14 +273,14 @@ public class JsonParserTest {
            "\t//\"num1\": 123,\n" +
            "\t\"num2\": 456\n" +
            "}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(456, result.get("num2"));
 
     json = "{\n" +
            "\t\"num1\": 123,\n" +
            "//\"num2\": 456\n" +
            "}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(123, result.get("num1"));
 
   }
@@ -290,11 +290,11 @@ public class JsonParserTest {
     Map<String, Object> result;
 
     json = "{}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(0, result.size());
 
     json = "{num\u0040:true}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(true, result.get("num@"));
 
     json = "{\n" +
@@ -304,7 +304,7 @@ public class JsonParserTest {
            "        'aspect-ratio': '16:9',\n" +
            "    }\n" +
            "}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals("16:9", MapNavigator.fromPath(result, "image.aspect-ratio"));
 
 
@@ -321,20 +321,20 @@ public class JsonParserTest {
            "  trailingComma: 'in objects', andIn: ['arrays',],\n" +
            "  \"backwardsCompatible\": \"with JSON\",\n" +
            "}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(1, MapNavigator.fromPath(result, "positiveSign"));
 
 
     json = "[]";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(0, ((List)result.get(JsonParser.DEFAULT_LIST_KEY)).size());
 
     json = "[1]";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(1, MapNavigator.fromPath(result, "list.0"));
 
     json = "[1,2]";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals(1, MapNavigator.fromPath(result, "list.0"));
     assertEquals(2, MapNavigator.fromPath(result, "list.1"));
 
@@ -346,12 +346,12 @@ public class JsonParserTest {
            "    true,\n" +
            "    'three',\n" +
            "]";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals("three", ((List)result.get(JsonParser.DEFAULT_LIST_KEY)).get(2));
 
 
     json = "{\"str\": '\\A\\C\\/\\D\\C'}";
-    result = JsonParser.parse(json);
+    result = TnJson.parse(json);
     assertEquals("AC/DC", result.get("str"));
 
   }
@@ -371,8 +371,8 @@ public class JsonParserTest {
     json = "{[]}";
     testException(json);
 
-    json = "{1:'hhhhhh\"llll'}";
-    //testException(json);
+    json = "{1:'hhhhhh\'2'}";
+    testException(json);
 
     json = "{aaaa \"wwww\", ssss:\"dddd\"}";
     testException(json);
@@ -380,7 +380,7 @@ public class JsonParserTest {
   }
   private void testException(String json) throws Exception {
     try {
-      Map<String, Object> result = JsonParser.parse(json);
+      Map<String, Object> result = TnJson.parse(json);
       throw new Exception("No exception.\nResult: " + result);
     }
     catch (ParseException ex) {
@@ -397,12 +397,12 @@ public class JsonParserTest {
     Map<String, Object> result;
 
     json = "{obj1:{num1:123, obj2:{list:[456, 789]}}}";
-    result = JsonParser.parse(json, null);
+    result = TnJson.parse(json, null);
     assertEquals("java.util.LinkedHashMap", MapNavigator.fromPath(result, "obj1.obj2").getClass().getName());
     assertEquals("java.util.ArrayList", MapNavigator.fromPath(result, "obj1.obj2.list").getClass().getName());
 
-    result = JsonParser.parse(json,
-                             new JsonParser.IGetCollection() {
+    result = TnJson.parse(json,
+                             new IGetCollection() {
                                @Override
                                public Map<String, Object> forObject(String path) {
                                  return null;
@@ -416,12 +416,12 @@ public class JsonParserTest {
     assertEquals("java.util.LinkedHashMap", MapNavigator.fromPath(result, "obj1.obj2").getClass().getName());
     assertEquals("java.util.ArrayList", MapNavigator.fromPath(result, "obj1.obj2.list").getClass().getName());
 
-    result = JsonParser.parse(json,
-                             new JsonParser.IGetCollection() {
+    result = TnJson.parse(json,
+                             new IGetCollection() {
                                @Override
                                public Map<String, Object> forObject(String path) {
                                  if (path.equals("root.obj1.obj2")) {
-                                   return new HashMap<String, Object>();
+                                   return new HashMap<>();
                                  }
                                  return null;
                                }
@@ -437,7 +437,7 @@ public class JsonParserTest {
     assertEquals("java.util.HashMap", MapNavigator.fromPath(result, "obj1.obj2").getClass().getName());
     assertEquals("java.util.HashSet", MapNavigator.fromPath(result, "obj1.obj2.list").getClass().getName());
 
-    HashSet<Integer> list = (HashSet) MapNavigator.fromPath(result, "obj1.obj2.list");
+    HashSet list = (HashSet) MapNavigator.fromPath(result, "obj1.obj2.list");
     assertEquals("java.lang.Integer", list.toArray()[0].getClass().getName());
 
 

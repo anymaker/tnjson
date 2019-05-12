@@ -1,6 +1,14 @@
 package a2u.tn.utils.json;
 
-import java.math.BigInteger;
+import java.lang.reflect.Array;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Map;
@@ -17,288 +25,38 @@ import java.util.Map;
  * Of course, you can use for json-object any class inheritor of the java.util.Map interface.<br>
  * For json-array you can use any class inheritor of the java.util.Collection interface.
  */
-public class JsonSerializer {
-
-  /**
-   * json generator tuning
-   */
-  public static class Settings {
-    private boolean isKeyQuoted = true;
-    private char quoteSymbol = '"';
-    private boolean isFormated = false;
-    private boolean isStayReadable = false;
-    private boolean isAllowMultiRowString = false;
-    private boolean isKeepNull = false;
-
-    /**
-     * Create new Settings
-     * @return new object with default settings
-     */
-    public static Settings init() {
-      return new Settings();
-    }
-
-    /**
-     * Disable quotation generation for the key
-     */
-    public Settings withoutKeyQuote() {
-      isKeyQuoted = false;
-      return this;
-    }
-
-    /**
-     * Use single quotes
-     */
-    public Settings singleQuote() {
-      quoteSymbol = '\'';
-      return this;
-    }
-
-    /**
-     * Format the final json
-     */
-    public Settings formated() {
-      isFormated = true;
-      return this;
-    }
-
-    /**
-     * Leave characters in a strings as readable as possible
-     */
-    public Settings readable() {
-      isStayReadable = true;
-      return this;
-    }
-
-    /**
-     * Allow linefeed in a strings
-     */
-    public Settings allowMultiRowString() {
-      isAllowMultiRowString = true;
-      return this;
-    }
-
-    /**
-     * Allow null values
-     */
-    public Settings keepNull() {
-      isKeepNull = true;
-      return this;
-    }
-    public String serialize(Map data) {
-      return toJson(data, this);
-    }
-  }
-
-  /**
-   * JSON generation mode
-   * @see #toJson(Map, Mode)
-   */
-  public enum Mode {
-    /**
-     * Will be generated compact json-string, where any non-digital and non-letter character in string will be replaced with sequence uXXXX.<br>
-     * This mode is default, because it has max compatibility with other clients.
-     */
-    HARD,
-
-    /**
-     * Will be generated compact json-string, where non-digital and non-letter character in string will be stay in readable format, if it possible.<bR>
-     * This format is more compact, but is not all client can parse it.
-     */
-    LIGHT,
-
-    /**
-     * Will be generated json-string in pretty read format, where non-digital and non-letter character in string will be stay in readable format, if it possible.<bR>
-     *
-     */
-    FORMATTED,
-
-    /**
-     * Will be generated json-string in max human readable format json5.<br>
-     * See detail about json5 on https://json5.org/
-     */
-    JSON5,
-
-    /**
-     * JSON5 like, but without linefeed
-     */
-    JSON5COMPACT
-  }
-
-
-
-  private static final Settings SET_HARD         = Settings.init();
-  private static final Settings SET_LIGHT        = Settings.init().readable();
-  private static final Settings SET_FORMATTED    = Settings.init().readable().formated();
-  private static final Settings SET_JSON5        = Settings.init().readable().formated().withoutKeyQuote().allowMultiRowString();
-  private static final Settings SET_JSON5COMPACT = Settings.init().readable().withoutKeyQuote().singleQuote();
+class JsonSerializer {
 
   private JsonSerializer() {
     //hide this
   }
 
   /**
-   * Convert Map to JSON.<br>
-   * Will be generated compact json-string, where any non-digital and non-letter character in string will be replaced with sequence uXXXX.
-   * @param data Map vith data to convert
+   * Convert Map to JSON with builder
+   * @param data Object to convert. It can be Map, Collection, array, or any other object
+   * @param builder json generator tuning
    * @return JSON-string
+   * @see TnJsonBuilder
    */
-  public static String toJson(Map data) {
-    return SET_HARD.serialize(data);
-  }
-
-  /**
-   * Convert Map to JSON with specify output string format
-   * @param data data Map vith data to convert
-   * @param mode affects the format of resulting string
-   * @return JSON-string
-   * @see Mode
-   */
-  public static String toJson(Map data, Mode mode) {
-    switch (mode) {
-      case HARD:         return SET_HARD.serialize(data);
-      case LIGHT:        return SET_LIGHT.serialize(data);
-      case FORMATTED:    return SET_FORMATTED.serialize(data);
-      case JSON5:        return SET_JSON5.serialize(data);
-      case JSON5COMPACT: return SET_JSON5COMPACT.serialize(data);
-      default:           return SET_HARD.serialize(data);
-    }
-  }
-
-  /**
-   * Convert Map to JSON with settings
-   * @param data data Map vith data to convert
-   * @param settings json generator tuning
-   * @return JSON-string
-   * @see Settings
-   */
-  public static String toJson(Map data, Settings settings) {
+  public static String toJson(Object data, TnJsonBuilder builder) {
     StringBuilder b = new StringBuilder();
-    addMap(data, b, settings, 0);
+    addValue(data, b, builder, 0, "");
     String json = b.toString();
     return json;
   }
 
-
-  private static void addMap(Map map, StringBuilder b, Settings settings, int level) {
-    int valuelevel = level + 1;
-
-    b.append("{");
-    endLine(b, settings);
-
-    boolean hasEntry = false;
-    for(Object keyObj : map.keySet()) {
-      String key = String.valueOf(keyObj);
-      Object value = map.get(keyObj);
-
-      if (value == null && !settings.isKeepNull) {
-        continue;
-      }
-
-      key = codeKey(key, settings);
-
-      if (hasEntry) {
-        b.append(",");
-        endLine(b, settings);
-      }
-      else {
-        hasEntry = true;
-      }
-
-      startLine(b, settings, valuelevel);
-      b.append(key);
-
-      b.append(":");
-      if (settings.isFormated) {
-        b.append(" ");
-      }
-
-      addValue(value, b, settings, valuelevel);
-    }
-
-    endLine(b, settings);
-    startLine(b, settings, level);
-    b.append("}");
-
-  }
-
-  private static String codeKey(CharSequence key, Settings settings) {
-    StringBuilder b = new StringBuilder();
-    int len = key.length();
-    boolean validIdenty = true;
-    for (int i=0; i < len; i++) {
-      char c = key.charAt(i);
-      if (Character.isLetterOrDigit(c)) {
-        b.append(c);
-      }
-      else {
-        b.append(unicodeEscaped(c));
-        validIdenty = false;
-      }
-
-
-    }
-
-    if (!settings.isKeyQuoted && validIdenty && Character.isLetter(key.charAt(0))) {
-      return b.toString();
-    }
-    else {
-      return settings.quoteSymbol + b.toString() + settings.quoteSymbol;
-    }
-  }
-
-  private static void addList(Collection list, StringBuilder b, Settings settings, int level) {
-    int itemlevel = level + 1;
-
-    b.append("[");
-
-    endLine(b, settings);
-    startLine(b, settings, itemlevel);
-
-    boolean hasEntry = false;
-    for (Object value : list) {
-
-      if (hasEntry) {
-        b.append(",");
-        endLine(b, settings);
-        startLine(b, settings, itemlevel);
-      }
-      else {
-        hasEntry = true;
-      }
-
-      addValue(value, b, settings, itemlevel);
-    }
-    endLine(b, settings);
-    startLine(b, settings, level);
-    b.append("]");
-
-  }
-
-  private static void addValue(Object value, StringBuilder b, Settings settings, int level) {
+  private static void addValue(Object value, StringBuilder b, TnJsonBuilder builder, int level, String path) {
 
     if (value == null) {
       b.append("null");
     }
-    else if (value instanceof String) {
-      addString((String) value, b, settings);
+    else if (value instanceof Character) {
+      addString(String.valueOf(value), b, builder);
     }
-    else if (value instanceof Byte) {
-      addNum(value, b);
+    else if (value instanceof CharSequence) {
+      addString((CharSequence) value, b, builder);
     }
-    else if (value instanceof Integer) {
-      addNum(value, b);
-    }
-    else if (value instanceof BigInteger) {
-      addNum(value, b);
-    }
-    else if (value instanceof Long) {
-      addNum(value, b);
-    }
-    else if (value instanceof Float) {
-      addNum(value, b);
-    }
-    else if (value instanceof Double) {
+    else if (value instanceof Number) {
       addNum(value, b);
     }
     else if (value instanceof Boolean) {
@@ -309,26 +67,39 @@ public class JsonSerializer {
       long v = ((Date)value).getTime();
       b.append(v);
     }
+    else if (value instanceof LocalDate) {
+      String strd = ((LocalDate)value).format(DateTimeFormatter.ISO_DATE);
+      b.append(strd);
+    }
+    else if (value instanceof LocalTime) {
+      String strt = ((LocalTime)value).format(DateTimeFormatter.ISO_TIME);
+      b.append(strt);
+    }
+    else if (value instanceof LocalDateTime) {
+      String strdt = ((LocalDateTime)value).format(DateTimeFormatter.ISO_DATE_TIME);
+      b.append(strdt);
+    }
     else if (value instanceof Map) {
-      addMap((Map) value, b, settings, level);
+      addMap((Map) value, b, builder, level, path);
     }
     else if (value instanceof Collection) {
-      addList((Collection) value, b, settings, level);
+      addList((Collection) value, b, builder, level, path);
     }
-
+    else if (value.getClass().isArray()) {
+      addArray(value, b, builder, level, path);
+    }
     else {
-      String v = String.valueOf(value);
-      addString(v, b, settings);
+      addObj(value, b, builder, level, path);
     }
 
   }
 
-  private static void addString(String str, StringBuilder b, Settings settings) {
+  private static void addString(CharSequence str, StringBuilder b, TnJsonBuilder builder) {
     if (str == null) {
       b.append("null");
     }
     else {
-      b.append(settings.quoteSymbol);
+      b.append(builder.quoteSymbol);
 
       int len = str.length();
       for (int p = 0; p < len; p++) {
@@ -337,18 +108,18 @@ public class JsonSerializer {
           b.append(c);
         }
         else if (c == '\n') {
-          if (settings.isAllowMultiRowString) {
+          if (builder.isAllowMultiRowString) {
             b.append("/\n");
           }
-          else if (settings.isStayReadable) {
+          else if (builder.isStayReadable) {
             b.append(charToReadable(c));
           }
           else {
             b.append(unicodeEscaped(c));
           }
         }
-        else if (c == settings.quoteSymbol) {
-          if (settings.isStayReadable) {
+        else if (c == builder.quoteSymbol) {
+          if (builder.isStayReadable) {
             b.append(charToReadable(c));
           }
           else {
@@ -356,7 +127,7 @@ public class JsonSerializer {
           }
         }
         else {
-          if (settings.isStayReadable) {
+          if (builder.isStayReadable) {
             if (c == '\'' || c == '"') {
               b.append(c);
             }
@@ -370,16 +141,9 @@ public class JsonSerializer {
         }
       }
 
-      b.append(settings.quoteSymbol);
+      b.append(builder.quoteSymbol);
     }
   }
-
-  private static void addNum(Object num, StringBuilder b) {
-    String v  = String.valueOf(num);
-    b.append(v);
-  }
-
-
   private static String charToReadable(char c) {
     switch (c) {
       case ' ': return String.valueOf(c);
@@ -436,13 +200,254 @@ public class JsonSerializer {
     return "\\u" + Integer.toHexString(ch);
   }
 
-  private static void endLine(StringBuilder b, Settings settin) {
-    if (settin.isFormated) {
+
+  private static void addNum(Object num, StringBuilder b) {
+    String v  = String.valueOf(num);
+    b.append(v);
+  }
+
+  private static void addMap(Map map, StringBuilder b, TnJsonBuilder builder, int level, String path) {
+    int valuelevel = level + 1;
+
+    b.append("{");
+    endLine(b, builder);
+
+    boolean hasEntry = false;
+    for(Object keyObj : map.keySet()) {
+      String key = String.valueOf(keyObj);
+      Object value = map.get(keyObj);
+      String valuePath = path+"."+key;
+
+      if (builder.pathHandler != null) {
+        value = builder.pathHandler.handlePath(valuePath, value);
+      }
+      if (value == null && !builder.isKeepNull) {
+        continue;
+      }
+      if (value != null && builder.typeHandler != null) {
+        value = builder.typeHandler.handleType(value);
+      }
+
+      key = codeKey(key, builder);
+
+      if (hasEntry) {
+        b.append(",");
+        endLine(b, builder);
+      }
+      else {
+        hasEntry = true;
+      }
+
+      startLine(b, builder, valuelevel);
+      b.append(key);
+
+      b.append(":");
+      if (builder.isFormated) {
+        b.append(" ");
+      }
+
+      addValue(value, b, builder, valuelevel, valuePath);
+    }
+
+    endLine(b, builder);
+    startLine(b, builder, level);
+    b.append("}");
+
+  }
+
+  private static String codeKey(CharSequence key, TnJsonBuilder builder) {
+    StringBuilder b = new StringBuilder();
+    int len = key.length();
+    boolean validIdenty = true;
+    for (int i=0; i < len; i++) {
+      char c = key.charAt(i);
+      if (Character.isLetterOrDigit(c)) {
+        b.append(c);
+      }
+      else {
+        b.append(unicodeEscaped(c));
+        validIdenty = false;
+      }
+
+
+    }
+
+    if (!builder.isKeyQuoted && validIdenty && Character.isLetter(key.charAt(0))) {
+      return b.toString();
+    }
+    else {
+      return builder.quoteSymbol + b.toString() + builder.quoteSymbol;
+    }
+  }
+
+  private static void addList(Collection list, StringBuilder b, TnJsonBuilder builder, int level, String path) {
+    int itemlevel = level + 1;
+
+    b.append("[");
+
+    endLine(b, builder);
+    startLine(b, builder, itemlevel);
+
+    boolean hasEntry = false;
+    for (Object value : list) {
+
+      if (builder.pathHandler != null) {
+        value = builder.pathHandler.handlePath(path, value);
+      }
+      if (value == null && !builder.isKeepNull) {
+        continue;
+      }
+
+      if (hasEntry) {
+        b.append(",");
+        endLine(b, builder);
+        startLine(b, builder, itemlevel);
+      }
+      else {
+        hasEntry = true;
+      }
+
+
+      if (value != null && builder.typeHandler != null) {
+        value = builder.typeHandler.handleType(value);
+      }
+
+      addValue(value, b, builder, itemlevel, path);
+    }
+    endLine(b, builder);
+    startLine(b, builder, level);
+    b.append("]");
+
+  }
+
+  private static void addArray(Object array, StringBuilder b, TnJsonBuilder builder, int level, String path) {
+    int itemlevel = level + 1;
+
+    b.append("[");
+
+    endLine(b, builder);
+    startLine(b, builder, itemlevel);
+
+    boolean hasEntry = false;
+    int length = Array.getLength(array);
+    for (int i = 0; i < length; i ++) {
+      Object value = Array.get(array, i);
+      if (builder.pathHandler != null) {
+        value = builder.pathHandler.handlePath(path, value);
+      }
+      if (value == null && !builder.isKeepNull) {
+        continue;
+      }
+
+      if (hasEntry) {
+        b.append(",");
+        endLine(b, builder);
+        startLine(b, builder, itemlevel);
+      }
+      else {
+        hasEntry = true;
+      }
+
+      if (value != null && builder.typeHandler != null) {
+        value = builder.typeHandler.handleType(value);
+      }
+
+      addValue(value, b, builder, itemlevel, path);
+    }
+
+    endLine(b, builder);
+    startLine(b, builder, level);
+    b.append("]");
+
+  }
+
+  private static void addObj(Object obj, StringBuilder b, TnJsonBuilder builder, int level, String path) {
+
+    Class<?> cls = obj.getClass();
+
+    try {
+      Method toJsonMtd = cls.getDeclaredMethod("toJson");
+      toJsonMtd.setAccessible(true);
+      String string = (String) toJsonMtd.invoke(obj);
+      b.append(string);
+      return;
+    }
+    catch (NoSuchMethodException e) {
+      //no method, no problem
+    }
+    catch (InvocationTargetException | IllegalAccessException e) {
+      throw new SerializeException("Error on invoke method toJson by class: "+cls.getName()+", object: " + String.valueOf(obj)+".", e);
+    }
+    int valuelevel = level + 1;
+
+    b.append("{");
+    endLine(b, builder);
+
+    boolean hasEntry = false;
+    Field[] fields = cls.getDeclaredFields();
+    for (Field field : fields) {
+      int modifiers = field.getModifiers();
+      boolean allow = !field.isSynthetic() && !Modifier.isPrivate(modifiers) && !Modifier.isTransient(modifiers);
+      if (! allow) {
+        continue;
+      }
+
+      Object value = getObjValue(field, obj);
+
+      if (value == null && !builder.isKeepNull) {
+        continue;
+      }
+      if (value != null && builder.typeHandler != null) {
+        value = builder.typeHandler.handleType(value);
+      }
+
+      if (hasEntry) {
+        b.append(",");
+        endLine(b, builder);
+      }
+      else {
+        hasEntry = true;
+      }
+
+      startLine(b, builder, valuelevel);
+
+      b.append(field.getName());
+      b.append(":");
+
+      if (builder.isFormated) {
+        b.append(" ");
+      }
+
+      addValue(value, b, builder, level, path);
+    }
+    endLine(b, builder);
+    startLine(b, builder, level);
+    b.append("}");
+  }
+  private static Object getObjValue(Field field, Object fromObj) {
+    boolean accessible = field.isAccessible();
+    field.setAccessible(true);
+    try {
+      Object value = field.get(fromObj);
+      return value;
+    }
+    catch (Throwable t) {
+      throw new SerializeException("Error on extract value from object " + fromObj.getClass().getName() + " ("+String.valueOf(fromObj) + ") from field " + field.getName(), t);
+    }
+    finally {
+      field.setAccessible(accessible);
+    }
+  }
+
+
+
+  private static void endLine(StringBuilder b, TnJsonBuilder builder) {
+    if (builder.isFormated) {
       b.append("\n");
     }
   }
-  private static void startLine(StringBuilder b, Settings settin, int level) {
-    if (!settin.isFormated) {
+  private static void startLine(StringBuilder b, TnJsonBuilder builder, int level) {
+    if (!builder.isFormated) {
       return;
     }
 
@@ -450,7 +455,5 @@ public class JsonSerializer {
       b.append("  ");
     }
   }
-
-
 
 }

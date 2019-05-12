@@ -11,8 +11,7 @@ import java.util.Map;
  * JSON for Humans https://spec.json5.org
  *
  */
-@SuppressWarnings("Convert2Diamond")
-public class JsonParser {
+class JsonParser {
 
   /**
    * This name will get element in a returned map when json-string will be an array of values.
@@ -27,33 +26,6 @@ public class JsonParser {
   public static final String PATH_ROOT_KEY = "root";
 
 
-  /**
-   * The callback-interface for specifying type of collection which will be returned when parsing.
-   * @see #parse(String, IGetCollection)
-   */
-  public interface IGetCollection {
-    /**
-     * This methow will be called when parcer need create new map.<br>
-     * If this method returns null, then map will be created with the default type - LinkedHashMap.
-     *
-     * @param path path of current element, starting from root. If this a root element, then path == "root".
-     * @return the empty object who implementing interface from java.util.Map<String, Object>.
-     *
-     * @see #PATH_ROOT_KEY
-     */
-    Map<String, Object> forObject(String path);
-
-    /**
-     * This methow will be called when parcer need create new array.<br>
-     * If this method returns null, then array will be created with the default type - ArrayList.
-     *
-     * @param path path of current element, starting from root.
-     * @return the empty object who implementing interface from java.util.Collection<Object>.
-     *
-     * @see #PATH_ROOT_KEY
-     */
-    Collection forList(String path);
-  }
   private IGetCollection listener;
 
 
@@ -97,63 +69,13 @@ public class JsonParser {
   private int index;                     // current accepted symbol
 
 
-  private JsonParser() {
+  JsonParser() {
     //hide this
   }
-
-
-
-  /**
-   * Parsing JSON-string to Map.<br>
-   * Every value in the resulting Map will be:
-   * <ul>
-   *   <li>or a simple value (string or number or boolean),</li>
-   *   <li>or a LinkedHashMap with nested json-object,</li>
-   *   <li>or an ArrayList of values.</li>
-   * </ul>
-   *
-   * @param data incoming JSON-string.
-   * @return Map with data.<br>
-   * If JSON contain only array, such as [1,2] then will return Map
-   * with single element by key-name DEFAULT_LIST_KEY, which contain list.
-   * @see #DEFAULT_LIST_KEY
-   *
-   */
-  public static Map<String, Object> parse(String data) {
-    try {
-      JsonParser p = new JsonParser();
-      return p.doParse(data);
-    }
-    catch (ParseException px) {
-      //Hide unnecessary log trace. If you want full trace - change it.
-      throw new ParseException(px.getMessage(), px.getPosition(), px.getPath());
-    }
+  JsonParser(IGetCollection listener) {
+    this.listener = listener;
   }
 
-  /**
-   * Parsing JSON-string to Map with specifying returned collections.<br>
-   * For each element representing a non-simple value, will be called the corresponding method of listener,
-   * which allows you to set type of the returned object.
-   * @see IGetCollection
-   *
-   * @param data incoming JSON-string.
-   * @param listener callback listener.
-   * @return Map with data.<br>
-   * If JSON contain only array, such as [1,2] then will return Map
-   * with single element by key-name DEFAULT_LIST_KEY, which contain list.
-   * @see #DEFAULT_LIST_KEY
-   */
-  public static Map<String, Object> parse(String data, IGetCollection listener) {
-    try {
-      JsonParser p = new JsonParser();
-      p.listener = listener;
-      return p.doParse(data);
-    }
-    catch (ParseException px) {
-      //Hide unnecessary log trace. If you want full trace - change it.
-      throw new ParseException(px.getMessage(), px.getPosition(), px.getPath());
-    }
-  }
 
 
   /**
@@ -161,7 +83,7 @@ public class JsonParser {
    * @param data json-string
    * @return java-map object - result of parsing
    */
-  private Map<String, Object> doParse(String data) {
+  Map<String, Object> doParse(String data) {
     content = data.trim();
     maxLength = content.length();
     index = 0;
@@ -192,7 +114,6 @@ public class JsonParser {
     }
   }
 
-
   private Map<String, Object> parseMap(Path path) {
     Map<String, Object> map = getCollectionForObject(path);
 
@@ -210,7 +131,6 @@ public class JsonParser {
 
       c = getTokenBegin();
       if (c != ':') {
-        ;
         throw new ParseException("Invalid character '" + charToLog(c) + "' at position " + index + ", path '" + pathForLog + "', expected ':'.", index, pathForLog);
       }
       index++;
@@ -233,6 +153,7 @@ public class JsonParser {
     return map;
   }
 
+  @SuppressWarnings("unchecked")
   private Collection parseList(Path path) {
     Collection list = getCollectionForList(path);
 
@@ -392,29 +313,21 @@ public class JsonParser {
 
     String literal = b.toString().trim().toLowerCase();
 
-    if (literal.equals(NULL)) {
-      return null;
-    }
-
-    else if (literal.equals(BOOL_TRUE)) {
-      return true;
-    }
-    else if (literal.equals(BOOL_FALSE)) {
-      return false;
-    }
-
-    else if (literal.equals(NUM_INFINITY)) {
-      return Double.POSITIVE_INFINITY;
-    }
-    else if (literal.equals(NUM_INFINITY_PSITIVE)) {
-      return Double.POSITIVE_INFINITY;
-    }
-    else if (literal.equals(NUM_INFINITY_NEGATIVE)) {
-      return Double.NEGATIVE_INFINITY;
-    }
-
-    else if (literal.equals(NUM_NAN)) {
-      return Double.NaN;
+    switch (literal) {
+      case NULL:
+        return null;
+      case BOOL_TRUE:
+        return true;
+      case BOOL_FALSE:
+        return false;
+      case NUM_INFINITY:
+        return Double.POSITIVE_INFINITY;
+      case NUM_INFINITY_PSITIVE:
+        return Double.POSITIVE_INFINITY;
+      case NUM_INFINITY_NEGATIVE:
+        return Double.NEGATIVE_INFINITY;
+      case NUM_NAN:
+        return Double.NaN;
     }
 
     try {
@@ -618,7 +531,7 @@ public class JsonParser {
       result = listener.forObject(path.getName());
     }
     if (result == null) {
-      result = new LinkedHashMap<String, Object>();
+      result = new LinkedHashMap<>();
     }
     return result;
   }
