@@ -197,11 +197,12 @@ import a2u.tn.utils.json.TnJson;
 ###    Incoming data
 For serialization you can use any data - Map, Collection, array, or any other object.
 But, as default some types return next result:
-java.util.Date          - value obtained as data.getTime(),
-java.lang.Boolean       - true | false
-java.time.LocalDate     - value corespond ISO-8601 '2011-12-03'          yyyy-MM-dd
-java.time.LocalTime     - value corespond ISO-8601 '10:15:30'            hh:mm:ss
-java.time.LocalDateTime - value corespond ISO-8601 '2011-12-03T10:15:30' yyyy-MM-ddThh:mm:ss
+
+| java.util.Date          | value obtained as data.getTime(),             |                    |
+| java.lang.Boolean       | true or false                                 |                    |
+| java.time.LocalDate     | value corespond ISO-8601 '2011-12-03'         | yyyy-MM-dd         |
+| java.time.LocalTime     | value corespond ISO-8601 '10:15:30'           | hh:mm:ss           |
+| java.time.LocalDateTime | value corespond ISO-8601 '2011-12-03T10:15:30'| yyyy-MM-ddThh:mm:ss|
 
 If incoming object is not a
 
