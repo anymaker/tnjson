@@ -220,8 +220,9 @@ Character, CharSequence, Number, Boolean,
 Date, LocalDate, LocalTime, LocalDateTime,
 Map, Collection, and is not array
 
-then attempt is made to get value from the method toJson().   \
-If this method is absent, then value collect from fields with public and default modifiers.
+then attempt is made to get value from the method **toJson()**.   \
+If this method is absent, then value collect from fields with **public** or **default** modifiers,
+exclude **transient** and **synthetic**.
 
 You can override this behavior using handlers
  -  TnJsonBuilder.IPathHandler - for handing generating json in concrete path
